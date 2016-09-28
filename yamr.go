@@ -2,38 +2,55 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	"fmt"
+	"strings"
 )
+
+// TODO turn storage and path into flags and env-var.
+var storage = "filesystem"
+var path = "files"
+
+var storageAdapter StorageAdapter = selectStorageAdapter(storage)
+
+func extract(path string) *FileMetadata {
+	split := strings.Split(path[1:], "/")
+
+	binary := split[len(split) - 1]
+	version := split[len(split) - 2]
+	artifact := split[len(split) - 3]
+	group := split[0:len(split) - 3]
+
+	return NewFileMetadata(group, artifact, version, binary)
+}
+
+func selectStorageAdapter(flag string) StorageAdapter {
+	if flag == "filesystem" {
+		return NewFileSystemAdapter(path)
+	} else {
+		// TODO add more adapters.
+		return nil
+	}
+}
 
 func main() {
 
 	webserver := gin.Default()
 
-/*
-	webserver.GET("/maven/*binary", func(c *gin.Context) {
-		all := c.Param("binary")
+	webserver.PUT("/maven/*any", func(g *gin.Context) {
+		any := g.Param("any")
 
-		split := strings.Split(all[1:], "/")
+		fileMeta := extract(any)
+		err := storageAdapter.Write(g.Request.Body, fileMeta)
 
-		binary := split[len(split) - 1]
-		version := split[len(split) - 2]
-		artifact := split[len(split) - 3]
-		group := strings.Join(split[0:len(split) - 3], "/")
-
-		c.String(200, "%s %s %s %s", group, artifact, version, binary)
-	})
-*/
-
-	webserver.Any("/*any", func(g *gin.Context) {
-		url := g.Param("any")
-		method := g.Request.Method
-		fmt.Printf("%s %s", method, url)
-
-		if method == "HEAD" {
-			g.String(200, "")
-		} else {
-			g.Next()
+		if err != nil {
+			g.Error(err)
 		}
+
+		g.Next()
+	})
+
+	// TODO implement
+	webserver.HEAD("/maven/*any", func(g *gin.Context) {
+		g.String(404, "")
 	})
 
 	// At publish
