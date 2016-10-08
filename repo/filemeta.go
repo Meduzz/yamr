@@ -1,14 +1,8 @@
-package main
+package repo
 
 import (
 	"strings"
-	"io"
 )
-
-type StorageAdapter interface {
-	Write(io.ReadCloser, *FileMetadata) error
-	Read(*FileMetadata) (string, error)
-}
 
 type FileMetadata struct {
 	Group []string
