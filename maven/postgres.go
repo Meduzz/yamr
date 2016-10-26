@@ -1,4 +1,4 @@
-package repo
+package maven
 
 import (
 	"io"
@@ -8,7 +8,7 @@ import (
 )
 
 // This is the PipeItem, recording files.
-type PostgresAdapter struct {
+type PostgresPipeItem struct {
 }
 
 func NewPostgresAdapter() PipeItem {
@@ -16,10 +16,10 @@ func NewPostgresAdapter() PipeItem {
 	if err != nil {
 		panic(err)
 	}
-	return &PostgresAdapter{}
+	return &PostgresPipeItem{}
 }
 
-func (p *PostgresAdapter) Write(context *Context, bytes io.ReadCloser) error {
+func (p *PostgresPipeItem) Write(context *Context, bytes io.ReadCloser) error {
 	meta := context.Get(FILEMETADATA).(*FileMetadata)
 	// let the items further down in the pipe, handle the actual write.
 	err := context.Write(bytes)
@@ -37,18 +37,18 @@ func (p *PostgresAdapter) Write(context *Context, bytes io.ReadCloser) error {
 	return nil
 }
 
-func (p *PostgresAdapter) Exists(context *Context) bool {
+func (p *PostgresPipeItem) Exists(context *Context) (bool, error) {
 	meta := context.Get(FILEMETADATA).(*FileMetadata)
 	torf, err := exists(meta.GroupAsPackage(), meta.Artifact, meta.Version, meta.File)
 
 	if err != nil {
-		return false
+		return false, err
 	}
 
-	return torf
+	return torf, nil
 }
 
-func (p *PostgresAdapter) Read(context *Context) ([]byte, error) {
+func (p *PostgresPipeItem) Read(context *Context) ([]byte, error) {
 	meta := context.Get(FILEMETADATA).(*FileMetadata)
 	torf, err := exists(meta.GroupAsPackage(), meta.Artifact, meta.Version, meta.File)
 

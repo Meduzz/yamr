@@ -2,60 +2,37 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	"strings"
 	"os"
 	"fmt"
 	"flag"
-	"./repo"
+	"./maven"
 )
 
 var storage = flag.String("storage", "filesystem", "The storage engine to use (defaults to \"filesystem\").")
+var repository *maven.Repository
 
 func main() {
 	flag.Parse()
 
 	port := fromEnv("PORT", "4040")
 
-	repository := repo.NewRepository(*storage)
+	repository = maven.NewRepository(*storage)
 
 	webserver := gin.Default()
 
-	webserver.PUT("/maven/*any", func(g *gin.Context) {
-		any := g.Param("any")
+	// maven repo urls
+	webserver.PUT("/maven/*any", Upload)
+	webserver.HEAD("/maven/*any", Exists)
+	webserver.GET("/maven/*any", Download)
 
-		err := repository.Write(extract(any), g.Request.Body)
+	// api urls
+	webserver.POST("/api/register", Register)
+	webserver.POST("/api/login", Login)
+	webserver.GET("/api/profile", Profile)
+	webserver.POST("/api/profile", UpdateProfile)
+	// TODO logout will simply be a reload of the single page.
 
-		if err != nil {
-			g.Error(err)
-		}
-
-		g.Next()
-	})
-
-	webserver.HEAD("/maven/*any", func(g *gin.Context) {
-		any := g.Param("any")
-
-		exists := repository.Exists(extract(any))
-
-		if exists {
-			g.String(200, "")
-		} else {
-			g.String(404, "")
-		}
-	})
-
-	webserver.GET("/maven/*any", func(g *gin.Context) {
-		any := g.Param("any")
-
-		bytes, err := repository.Read(extract(any))
-
-		if err != nil {
-			g.Error(err)
-		} else {
-			g.Status(200)
-			g.Writer.Write(bytes)
-		}
-	})
+	// TODO add a static url.
 
 	webserver.Run(fmt.Sprintf(":%s", port))
 }
@@ -68,15 +45,4 @@ func fromEnv(param string, defaultVal string) string {
 	}
 
 	return env
-}
-
-func extract(path string) *repo.FileMetadata {
-	split := strings.Split(path[1:], "/")
-
-	binary := split[len(split) - 1]
-	version := split[len(split) - 2]
-	artifact := split[len(split) - 3]
-	group := split[0:len(split) - 3]
-
-	return repo.NewFileMetadata(group, artifact, version, binary)
 }

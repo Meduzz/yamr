@@ -1,4 +1,4 @@
-package repo
+package maven
 
 import "io"
 
@@ -38,7 +38,7 @@ func (c *Context) Write(bytes io.ReadCloser) error {
 	return chain[c.index].Write(c, bytes)
 }
 
-func (c *Context) Exists() bool {
+func (c *Context) Exists() (bool, error) {
 	c.index++
 	chain := *c.chain
 	return chain[c.index].Exists(c)

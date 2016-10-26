@@ -1,4 +1,4 @@
-package repo
+package maven
 
 import (
 	"io"
@@ -7,11 +7,11 @@ import (
 	"io/ioutil"
 )
 
-type FilesystemAdapter struct {
+type FilesystemPipeItem struct {
 	url string
 }
 
-func NewFileSystemAdapter(url string) FilesystemAdapter {
+func NewFileSystemAdapter(url string) *FilesystemPipeItem {
 	var baseUrl string
 
 	if url[0] != '/' {
@@ -29,10 +29,10 @@ func NewFileSystemAdapter(url string) FilesystemAdapter {
 
 	log.Printf("Using %s as base dir.", baseUrl)
 
-	return FilesystemAdapter{baseUrl}
+	return &FilesystemPipeItem{baseUrl}
 }
 
-func (fs FilesystemAdapter) Write(context *Context, bytes io.ReadCloser) error {
+func (fs *FilesystemPipeItem) Write(context *Context, bytes io.ReadCloser) error {
 	// I expect this will be ran in it's own go-routine sooner or later.
 	meta := context.Get(FILEMETADATA).(*FileMetadata)
 	err := os.MkdirAll(fs.url + "/" + meta.GroupAsPath() + "/" + meta.Version, 0755)
@@ -55,9 +55,9 @@ func (fs FilesystemAdapter) Write(context *Context, bytes io.ReadCloser) error {
 	return nil
 }
 
-func (fs FilesystemAdapter) Read(context *Context) ([]byte, error) {
+func (fs *FilesystemPipeItem) Read(context *Context) ([]byte, error) {
 	meta := context.Get(FILEMETADATA).(*FileMetadata)
-	file, err := os.Open(meta.Path())
+	file, err := os.Open(fs.url + "/" + meta.Path())
 
 	if err != nil {
 		return nil, err
@@ -67,14 +67,14 @@ func (fs FilesystemAdapter) Read(context *Context) ([]byte, error) {
 	}
 }
 
-func (fs FilesystemAdapter) Exists(context *Context) bool {
+func (fs *FilesystemPipeItem) Exists(context *Context) (bool, error) {
 	meta := context.Get(FILEMETADATA).(*FileMetadata)
 	file, err := os.Open(meta.Path())
 
-	if err != nil && os.IsNotExist(err) {
-		return false
+	if err != nil {
+		return false, err
 	} else {
 		defer file.Close()
-		return true
+		return true, nil
 	}
 }

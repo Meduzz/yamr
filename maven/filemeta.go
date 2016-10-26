@@ -1,7 +1,8 @@
-package repo
+package maven
 
 import (
 	"strings"
+	"fmt"
 )
 
 type FileMetadata struct {
@@ -32,4 +33,8 @@ func (m *FileMetadata) GroupAsPath() string {
 
 func (m *FileMetadata) Path() string {
 	return m.GroupAsPath() + "/" + m.Version + "/" + m.File
+}
+
+func (m *FileMetadata) TopDomain(append string) string {
+	return fmt.Sprintf("%s.%s%s", m.Group[0], m.Group[1], append)
 }

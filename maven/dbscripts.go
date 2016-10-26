@@ -1,4 +1,4 @@
-package repo
+package maven
 
 import (
 	_ "github.com/lib/pq"
@@ -13,6 +13,7 @@ var scripts []string = []string{
 	"create table db_changelog (id bigint primary key, executedAt bigint, hash varchar(100))",
 	"create sequence artifact_seq start 1; create table artifacts (id bigint primary key default nextval('artifact_seq'), groupName varchar(512), artifactName varchar(256), version varchar(128), filename varchar(128))",
 	"create unique index artifact_idx on artifacts (groupName, artifactName, version, filename)",
+	"create sequence package_seq start 1; create table packages (id bigint primary key default nextval('package_seq'), name varchar(255), read boolean, username varchar(255), password varchar(100))",
 }
 
 func SetupDatabase() error {
