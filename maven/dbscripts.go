@@ -12,8 +12,13 @@ import (
 var scripts []string = []string{
 	"create table db_changelog (id bigint primary key, executedAt bigint, hash varchar(100))",
 	"create sequence artifact_seq start 1; create table artifacts (id bigint primary key default nextval('artifact_seq'), groupName varchar(512), artifactName varchar(256), version varchar(128), filename varchar(128))",
-	"create unique index artifact_idx on artifacts (groupName, artifactName, version, filename)",
-	"create sequence package_seq start 1; create table packages (id bigint primary key default nextval('package_seq'), name varchar(255), read boolean, username varchar(255), password varchar(100))",
+	"create unique index artifact_unq on artifacts (groupName, artifactName, version, filename)",
+	"create sequence account_seq start 1; create table accounts (id bigint primary key default nextval('account_seq'), name varchar(255), username varchar(255), password varchar(100))",
+	"create unique index name_unq on accounts (name)",
+	"create unique index username_unq on accounts (username)",
+	"create sequence session_seq start 1; create table sessions (id varchar(255) primary key, package varchar(255), created bigint, expires bigint, ip varchar(255))",
+	"create table packages (groupName varchar(512) primary key, password varchar(100), public boolean)",
+	"create unique index groupname_unq on packages (groupName)",
 }
 
 func SetupDatabase() error {

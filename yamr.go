@@ -5,7 +5,7 @@ import (
 	"os"
 	"fmt"
 	"flag"
-	"./maven"
+	"github.com/Meduzz/yamr/maven"
 )
 
 var storage = flag.String("storage", "filesystem", "The storage engine to use (defaults to \"filesystem\").")
@@ -28,11 +28,14 @@ func main() {
 	// api urls
 	webserver.POST("/api/register", Register)
 	webserver.POST("/api/login", Login)
-	webserver.GET("/api/profile", Profile)
-	webserver.POST("/api/profile", UpdateProfile)
-	// TODO logout will simply be a reload of the single page.
+	webserver.GET("/api/username/:username", UsernameExists)
+	webserver.GET("/api/domain/:domain", DomainExists)
+	webserver.GET("/api/packages", Packages)
+	webserver.POST("/api/packages", UpdatePackage)
+	// logout will simply be a reload of the single page.
 
-	// TODO add a static url.
+	webserver.StaticFile("/", "./static/index.html")
+	webserver.Static("/static", "./static")
 
 	webserver.Run(fmt.Sprintf(":%s", port))
 }

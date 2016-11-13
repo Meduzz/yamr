@@ -6,7 +6,6 @@ import (
 	"os"
 	"github.com/gin-gonic/gin"
 	"strings"
-	"log"
 )
 
 const FILEMETADATA = "file_metadata"

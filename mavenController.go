@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	"log"
 	"strings"
+	"github.com/Meduzz/yamr/maven"
 )
 
 func Upload(g *gin.Context) {
@@ -11,10 +11,9 @@ func Upload(g *gin.Context) {
 	err := repository.Write(context, g.Request.Body)
 
 	if err != nil {
-		log.Printf("There was an error. %s", err)
 		if isAccessDenied(err) {
-			// TODO figure out a good realm.
-			g.Header("WWW-Authenticate", "Basic realm=\"test\"")
+			meta := context.Get(maven.FILEMETADATA).(*maven.FileMetadata)
+			g.Header("WWW-Authenticate", "Basic realm=\"" + meta.GroupAsPackage() + "\"")
 			g.AbortWithError(401, err)
 		} else {
 			g.AbortWithError(500, err)
@@ -30,8 +29,8 @@ func Exists(g *gin.Context) {
 
 	if err != nil {
 		if isAccessDenied(err) {
-			// TODO figure out a good realm.
-			g.Header("WWW-Authenticate", "Basic realm=\"test\"")
+			meta := context.Get(maven.FILEMETADATA).(*maven.FileMetadata)
+			g.Header("WWW-Authenticate", "Basic realm=\"" + meta.GroupAsPackage() + "\"")
 			g.AbortWithError(401, err)
 		} else {
 			g.AbortWithError(500, err)
@@ -49,10 +48,9 @@ func Download(g *gin.Context) {
 	bytes, err := repository.Read(context)
 
 	if err != nil {
-		log.Printf("There was an error. %s", err)
 		if isAccessDenied(err) {
-			// TODO figure out a good realm.
-			g.Header("WWW-Authenticate", "Basic realm=\"test\"")
+			meta := context.Get(maven.FILEMETADATA).(*maven.FileMetadata)
+			g.Header("WWW-Authenticate", "Basic realm=\"" + meta.GroupAsPackage() + "\"")
 			g.AbortWithError(401, err)
 		} else {
 			g.AbortWithError(500, err)
@@ -64,5 +62,6 @@ func Download(g *gin.Context) {
 }
 
 func isAccessDenied(err error) bool {
-	return strings.Contains(err.Error(), "Access denied")
+	return strings.Contains(err.Error(), "denied") ||
+			strings.Contains(err.Error(), "credential")
 }

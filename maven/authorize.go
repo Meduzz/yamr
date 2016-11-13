@@ -17,11 +17,12 @@ type (
 		Password string
 	}
 
+	// TODO improvement when it comes to dual declare structs...
+	// Or simply package stuff better...
 	Package struct {
 		Name string
-		Read bool
-		Username string
 		Password string
+		Public bool
 	}
 )
 
@@ -31,123 +32,85 @@ func NewAuthorizeAdapter() *AuthorizePipeItem {
 	return &AuthorizePipeItem{}
 }
 
+// TODO check that credentail.username owns this package.
 func (a *AuthorizePipeItem) Write(context *Context, bytes io.ReadCloser) error {
 	meta := context.Get(FILEMETADATA).(*FileMetadata)
 	credentials := credentialsOrNull(context)
-	auths := authorizationsStartingWith(meta.TopDomain("%"))
+	packageDetails, err := authorizationForGroup(meta.GroupAsPackage())
 
-	if len(auths) == 0 {
-		return context.Write(bytes)
-	} else if credentials != nil {
-		for _, auth := range(auths) {
-			if auth.Name == meta.TopDomain("") {
-				if auth.Username == credentials.Username && auth.Password == credentials.Password {
-					return context.Write(bytes)
-				}
-			} else if auth.Name == meta.GroupAsPackage() {
-				if auth.Username == credentials.Username && auth.Password == credentials.Password {
-					return context.Write(bytes)
-				}
-			}
+	if err != nil {
+		return err
+	} else if credentials == nil {
+		return errors.New("Access denied.")
+	} else {
+		if packageDetails.Password == credentials.Password {
+			return context.Write(bytes)
 		}
+		return errors.New("Invalid credentials.")
 	}
-
-	return errors.New("Access denied")
 }
 
 func (a *AuthorizePipeItem) Read(context *Context) ([]byte, error) {
 	meta := context.Get(FILEMETADATA).(*FileMetadata)
 	credentials := credentialsOrNull(context)
-	auths := authorizationsStartingWith(meta.TopDomain("%"))
+	packageDetails, err := authorizationForGroup(meta.GroupAsPackage())
 
-	if len(auths) == 0 {
-		return context.Read()
+	if err != nil {
+		return nil, err
 	} else {
-		for _, auth := range(auths) {
-			if auth.Read {
-				return context.Read()
-			} else if credentials == nil {
-				return nil, errors.New("Access denied")
-			} else {
-				if auth.Name == meta.TopDomain("") {
-					if auth.Username == credentials.Username && auth.Password == credentials.Password {
-						return context.Read()
-					}
-				} else if auth.Name == meta.GroupAsPackage() {
-					if auth.Username == credentials.Username && auth.Password == credentials.Password {
-						return context.Read()
-					}
-				}
-			}
+		if packageDetails.Public {
+			return context.Read()
+		} else if credentials == nil {
+			return nil, errors.New("Access denied.")
+		} else if packageDetails.Password == credentials.Password {
+			return context.Read()
+		} else {
+			return nil, errors.New("Invalid credentials.")
 		}
 	}
-
-	return nil, errors.New("Access denied")
 }
 
 func (a *AuthorizePipeItem) Exists(context *Context) (bool, error) {
 	meta := context.Get(FILEMETADATA).(*FileMetadata)
 	credentials := credentialsOrNull(context)
-	auths := authorizationsStartingWith(meta.TopDomain("%"))
+	packageDetails, err := authorizationForGroup(meta.GroupAsPackage())
 
-	if len(auths) == 0 {
-		return context.Exists()
+	if err != nil {
+		return false, err
 	} else {
-		for _, auth := range(auths) {
-			if auth.Read {
-				return context.Exists()
-			} else if credentials == nil {
-				return false, errors.New("Access denied")
-			} else {
-				if auth.Name == meta.TopDomain("") {
-					if auth.Username == credentials.Username && auth.Password == credentials.Password {
-						return context.Exists()
-					}
-				} else if auth.Name == meta.GroupAsPackage() {
-					if auth.Username == credentials.Username && auth.Password == credentials.Password {
-						return context.Exists()
-					}
-				}
-			}
+		if packageDetails.Public {
+			return context.Exists()
+		} else if credentials == nil {
+			return false, errors.New("Access denied.")
+		} else if packageDetails.Password == credentials.Password {
+			return context.Exists()
+		} else {
+			return false, errors.New("Invalid credentials.")
 		}
 	}
-
-	return false, errors.New("Access denied")
 }
 
-func authorizationsStartingWith(group string) []Package {
+func authorizationForGroup(group string) (*Package, error) {
 	conn, err := sql.Open("postgres", "")
-
-	matches := make([]Package, 0)
 
 	if err != nil {
 		log.Printf("There was an error connecting to db: %s.", err)
-		return matches
+		return nil, err
 	}
 
 	defer conn.Close()
 
-	rows, err := conn.Query("select name, read, username, password from packages where name like $1", group)
+	row := conn.QueryRow("select groupName, public, password from packages where groupName = $1", group)
 
-	if  err != nil {
-		log.Printf("Error executing query: %s.", err)
-		return matches
+	p := &Package{}
+	err = row.Scan(&p.Name, &p.Public, &p.Password)
+
+	if err != nil {
+		log.Printf("There was an error fetching data from db. (%s)", err)
+		return nil, err
 	}
 
-	defer rows.Close()
-
-	for rows.Next() {
-		p := new(Package)
-
-		err = rows.Scan(&p.Name, &p.Read, &p.Username, &p.Password)
-		if err != nil {
-			log.Printf("There was an error fetching data from db. (%s)", err)
-		} else {
-			matches = append(matches, *p)
-		}
-	}
-
-	return matches
+	return p, nil
 }
 
 func credentialsOrNull(c *Context) *Credential {
@@ -160,3 +123,9 @@ func credentialsOrNull(c *Context) *Credential {
 	}
 }
 
+/*
+	Simplifications:
+	1. Disallow writes without credentials.
+	2. Only allow writes to packages specified in UI (with that package credential)
+	3. Unless package.read is true, disallow reads to that package without credentials, and only allow with that package credential.
+ */
