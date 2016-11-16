@@ -1,0 +1,9 @@
+build:
+  image: golang
+  command
+    - go get
+    - go build
+
+  public:
+    docker:
+      $$DOCKER_HUB_IP
