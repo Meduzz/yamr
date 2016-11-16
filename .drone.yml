@@ -1,6 +1,6 @@
 build:
   image: golang
-  command
+  command:
     - go get
     - go build
 
