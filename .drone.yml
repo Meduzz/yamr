@@ -1,8 +1,8 @@
 build:
   image: golang
   commands:
-    - go get https://github.com/gin-gonic/gin
-    - go get https://github.com/lib/pq
+    - go get github.com/gin-gonic/gin
+    - go get github.com/lib/pq
     - go build
 
   public:
