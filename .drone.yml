@@ -3,6 +3,8 @@ build:
   commands:
     - go get github.com/gin-gonic/gin
     - go get github.com/lib/pq
+    - go get github.com/Meduzz/yamr/maven
+    - go get github.com/Meduzz/yamr/user
     - go build
 
   public:
