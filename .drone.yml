@@ -3,10 +3,9 @@ build:
   commands:
     - go get github.com/gin-gonic/gin
     - go get github.com/lib/pq
-    - go get github.com/Meduzz/yamr/maven
-    - go get github.com/Meduzz/yamr/user
+    - go get github.com/Meduzz/yamr
     - go build
 
-  public:
-    docker:
-      $$DOCKER_HUB_IP
+publish:
+  docker:
+    repo: $$DOCKER_HUB_IP

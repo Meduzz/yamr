@@ -23,6 +23,8 @@ func NewFileSystemAdapter(url string) *FilesystemPipeItem {
 		}
 
 		baseUrl = dir + "/" + url
+
+		err = os.MkdirAll(baseUrl, 0755)
 	} else {
 		baseUrl = url
 	}
