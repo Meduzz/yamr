@@ -6,6 +6,7 @@ import (
 	"strings"
 	"github.com/Meduzz/yamr/user"
 	"github.com/Meduzz/yamr/maven"
+	"net/http"
 )
 
 // register a user (incl top domain (se.kodiak)).
@@ -35,7 +36,7 @@ func Login(g *gin.Context) {
 		g.AbortWithError(500, err)
 	}
 
-	ip := cleanIp(g.Request.RemoteAddr)
+	ip := cleanIp(g.Request)
 	u, err := user.NewUsers().LoadByUsernameAndPassword(credential.Username, credential.Password)
 
 	if err != nil {
@@ -88,7 +89,7 @@ func DomainExists(g *gin.Context) {
 // list the users packages.
 func Packages(g *gin.Context) {
 	sessionId := g.Request.Header.Get("Session")
-	ip := cleanIp(g.Request.RemoteAddr)
+	ip := cleanIp(g.Request)
 
 	session, err := user.NewSessions().LoadById(sessionId)
 
@@ -111,7 +112,7 @@ func Packages(g *gin.Context) {
 // update/create a package.
 func UpdatePackage(g *gin.Context) {
 	sessionId := g.Request.Header.Get("Session")
-	ip := cleanIp(g.Request.RemoteAddr)
+	ip := cleanIp(g.Request)
 
 	session, err := user.NewSessions().LoadById(sessionId)
 
@@ -138,11 +139,42 @@ func UpdatePackage(g *gin.Context) {
 	}
 }
 
+// handle queries for packages.
+func Search(g *gin.Context) {
+	sessionId := g.Request.Header.Get("Session")
+
+	if len(sessionId) > 0 {
+		ip := cleanIp(g.Request)
+
+		session, err := user.NewSessions().LoadById(sessionId)
+
+		if err != nil {
+			// search without user.
+		} else if !valid(session, ip) {
+			// search without user.
+		} else {
+			user.NewSessions().Extend(session)
+			// search with user.
+			// session.Package
+		}
+	} else {
+		// search without user.
+	}
+
+}
+
 func valid(session *user.Session, ip string) bool {
 	now := time.Now()
 	return session.Expires.After(now) && session.Ip == ip
 }
 
-func cleanIp(ip string) string {
-	return strings.Split(ip, ":")[0]
+func cleanIp(req *http.Request) string {
+	proxied := req.Header.Get("X-Forwarded-For")
+
+	if len(proxied) == 0 {
+		ip := req.RemoteAddr
+		return strings.Split(ip, ":")[0]
+	} else  {
+		return strings.Split(proxied, ":")[0]
+	}
 }
