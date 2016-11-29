@@ -20,6 +20,8 @@
         read:(ctx, entity) => {
           if (fields[field] == 'text') {
             entity[field] = ctx[field].value
+          } else if (fields[field] == 'number') {
+            entity[field] = parseInt(ctx[field].value, 10)
           } else {
             entity[field] = ctx[field].checked
           }

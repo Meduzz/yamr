@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"strings"
 	"github.com/Meduzz/yamr/maven"
+	"github.com/Meduzz/yamr/artifacts"
 )
 
 func Upload(g *gin.Context) {
@@ -12,7 +13,7 @@ func Upload(g *gin.Context) {
 
 	if err != nil {
 		if isAccessDenied(err) {
-			meta := context.Get(maven.FILEMETADATA).(*maven.FileMetadata)
+			meta := context.Get(maven.FILEMETADATA).(*artifacts.FileMetadata)
 			g.Header("WWW-Authenticate", "Basic realm=\"" + meta.GroupAsPackage() + "\"")
 			g.AbortWithError(401, err)
 		} else {
@@ -29,7 +30,7 @@ func Exists(g *gin.Context) {
 
 	if err != nil {
 		if isAccessDenied(err) {
-			meta := context.Get(maven.FILEMETADATA).(*maven.FileMetadata)
+			meta := context.Get(maven.FILEMETADATA).(*artifacts.FileMetadata)
 			g.Header("WWW-Authenticate", "Basic realm=\"" + meta.GroupAsPackage() + "\"")
 			g.AbortWithError(401, err)
 		} else {
@@ -49,7 +50,7 @@ func Download(g *gin.Context) {
 
 	if err != nil {
 		if isAccessDenied(err) {
-			meta := context.Get(maven.FILEMETADATA).(*maven.FileMetadata)
+			meta := context.Get(maven.FILEMETADATA).(*artifacts.FileMetadata)
 			g.Header("WWW-Authenticate", "Basic realm=\"" + meta.GroupAsPackage() + "\"")
 			g.AbortWithError(401, err)
 		} else {

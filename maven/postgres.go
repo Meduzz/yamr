@@ -3,13 +3,15 @@ package maven
 import (
 	"io"
 	"errors"
-	"database/sql"
 	_ "github.com/lib/pq"
+	"github.com/Meduzz/yamr/artifacts"
 )
 
 // This is the PipeItem, recording files.
 type PostgresPipeItem struct {
 }
+
+var artifactManager = artifacts.NewArtifacts()
 
 func NewPostgresAdapter() PipeItem {
 	err := SetupDatabase()
@@ -20,7 +22,9 @@ func NewPostgresAdapter() PipeItem {
 }
 
 func (p *PostgresPipeItem) Write(context *Context, bytes io.ReadCloser) error {
-	meta := context.Get(FILEMETADATA).(*FileMetadata)
+	meta := context.Get(FILEMETADATA).(*artifacts.FileMetadata)
+	packages := context.Get(PACKAGE).(*Package)
+
 	// let the items further down in the pipe, handle the actual write.
 	err := context.Write(bytes)
 
@@ -28,7 +32,7 @@ func (p *PostgresPipeItem) Write(context *Context, bytes io.ReadCloser) error {
 		return err
 	}
 
-	err = insert(meta.GroupAsPackage(), meta.Artifact, meta.Version, meta.File)
+	err = artifactManager.Store(meta, packages.Id)
 
 	if err != nil {
 		return err
@@ -38,8 +42,8 @@ func (p *PostgresPipeItem) Write(context *Context, bytes io.ReadCloser) error {
 }
 
 func (p *PostgresPipeItem) Exists(context *Context) (bool, error) {
-	meta := context.Get(FILEMETADATA).(*FileMetadata)
-	torf, err := exists(meta.GroupAsPackage(), meta.Artifact, meta.Version, meta.File)
+	meta := context.Get(FILEMETADATA).(*artifacts.FileMetadata)
+	torf, err := artifactManager.Exists(meta)
 
 	if err != nil {
 		return false, err
@@ -49,8 +53,8 @@ func (p *PostgresPipeItem) Exists(context *Context) (bool, error) {
 }
 
 func (p *PostgresPipeItem) Read(context *Context) ([]byte, error) {
-	meta := context.Get(FILEMETADATA).(*FileMetadata)
-	torf, err := exists(meta.GroupAsPackage(), meta.Artifact, meta.Version, meta.File)
+	meta := context.Get(FILEMETADATA).(*artifacts.FileMetadata)
+	torf, err := artifactManager.Exists(meta)
 
 	if err != nil {
 		return nil, err
@@ -62,45 +66,4 @@ func (p *PostgresPipeItem) Read(context *Context) ([]byte, error) {
 	}
 
 	return nil, errors.New("File not found.")
-}
-
-func insert(group string, artifact string, version string, file string) error {
-	conn, err := sql.Open("postgres", "")
-
-	if err != nil {
-		return err
-	}
-
-	defer conn.Close()
-
-	// insert into
-	_, err = conn.Exec("insert into artifacts (groupname, artifactname, version, filename) values ($1, $2, $3, $4)", group, artifact, version, file)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func exists(group string, artifact string, version string, file string) (bool, error) {
-	conn, err := sql.Open("postgres", "")
-
-	if err != nil {
-		return false, err
-	}
-
-	defer conn.Close()
-
-	// select count(*)
-	row := conn.QueryRow("select count(id) from artifacts where groupname=$1 and artifactname=$2 and version=$3 and filename=$4", group, artifact, version, file)
-
-	var count int = 0
-	err = row.Scan(&count)
-
-	if err != nil {
-		return false, err
-	}
-
-	return count > 0, nil
 }

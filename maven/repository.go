@@ -6,6 +6,7 @@ import (
 	"os"
 	"github.com/gin-gonic/gin"
 	"strings"
+	"github.com/Meduzz/yamr/artifacts"
 )
 
 const FILEMETADATA = "file_metadata"
@@ -86,7 +87,7 @@ func fromEnv(param string, defaultVal string) string {
 	return env
 }
 
-func extract(path string) *FileMetadata {
+func extract(path string) *artifacts.FileMetadata {
 	split := strings.Split(path[1:], "/")
 
 	binary := split[len(split) - 1]
@@ -94,5 +95,5 @@ func extract(path string) *FileMetadata {
 	artifact := split[len(split) - 3]
 	group := split[0:len(split) - 3]
 
-	return NewFileMetadata(group, artifact, version, binary)
+	return artifacts.NewFileMetadata(group, artifact, version, binary)
 }

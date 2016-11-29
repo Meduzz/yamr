@@ -23,14 +23,26 @@
       <tfoot>
         <tr>
           <td><input class="form-control" type="text" placeholder="se.kodiak.tools" name="Name"/></td>
-          <td><input class="form-control" type="text" placeholder="Password" name="Password"/></td>
-          <td><input type="checkbox" name="Public"/></td>
+          <td><input class="form-control" type="text" placeholder="top secret" name="Password"/></td>
+          <td>
+            <input type="checkbox" name="Public" />
+            <input type="hidden" name="Id" />
+          </td>
           <td><button type="submit" class="btn btn-default">Save</button></td>
         </tr>
       </tfoot>
     </table>
+    <nav>
+      <ul class="pager">
+        <li class="previous {parent.rows.length==0 || parent.page == 0 ? 'disabled' : ''}">
+          <a href="#" onclick={parent.prevPage}><span aria-hidden="true">&larr;</span> Previous</a>
+        </li>
+        <li class="next {parent.data.length==0 ? 'disabled' : ''}">
+          <a href="#" onclick={parent.nextPage}>Next <span aria-hidden="true">&rarr;</span></a>
+        </li>
+      </ul>
+    </nav>
     <!--
-      TODO add pagination
       TODO react to other status codes 400 among others...
     -->
   </jsonform>
@@ -47,6 +59,8 @@
 
     this.rows = []
     this.error = null
+    this.page = 0
+    this.limit = 20
 
     const rest = this.initRest('/api/', 'packages', {Session:opts.session.Id})
     const self = this
@@ -54,10 +68,10 @@
     this.settings = function() {
       return {
         success:(ok) => {
-          self.tags.jsonform.Name = ''
-          self.tags.jsonform.Password = ''
+          self.tags.jsonform.Name.value = ''
+          self.tags.jsonform.Password.value = ''
 
-          rest.list(rows => {
+          rest.list(self.page, self.limit, (rows) => {
             self.rows = rows
             self.update()
           })
@@ -66,26 +80,45 @@
           self.error = err
           self.update()
         },
-        fields:{"Name":"text","Password":"text","Public":"boolean"},
+        fields:{"Id":"number","Name":"text","Password":"text","Public":"boolean"},
         headers:{
           Session:opts.session.Id
         }
       }
     }
 
-    this.on('mount', () => {
-      rest.list((rows) => {
-        self.rows = rows
-        self.update()
-      })
-    })
+    this.on('mount', listPackages)
 
     edit(e) {
       this.tags.jsonform.Name.value = e.item.Name
       this.tags.jsonform.Password.value = e.item.Password
       this.tags.jsonform.Public.checked = e.item.Public
+      this.tags.jsonform.Id.value = e.item.Id
       this.update()
       return false
+    }
+
+    nextPage(e) {
+      self.page++
+      listPackages()
+      return false
+    }
+
+    prevPage(e) {
+      self.page--
+      if (self.page > -1) {
+        listPackages()
+      } else {
+        self.page = 0
+      }
+      return false
+    }
+
+    function listPackages() {
+      rest.list(self.page, self.limit, (rows) => {
+        self.rows = rows
+        self.update()
+      })
     }
   </script>
 </packages>

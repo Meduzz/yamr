@@ -5,6 +5,7 @@ import (
 	"os"
 	"log"
 	"io/ioutil"
+	"github.com/Meduzz/yamr/artifacts"
 )
 
 type FilesystemPipeItem struct {
@@ -36,7 +37,7 @@ func NewFileSystemAdapter(url string) *FilesystemPipeItem {
 
 func (fs *FilesystemPipeItem) Write(context *Context, bytes io.ReadCloser) error {
 	// I expect this will be ran in it's own go-routine sooner or later.
-	meta := context.Get(FILEMETADATA).(*FileMetadata)
+	meta := context.Get(FILEMETADATA).(*artifacts.FileMetadata)
 	err := os.MkdirAll(fs.url + "/" + meta.GroupAsPath() + "/" + meta.Version, 0755)
 	if err != nil && !os.IsExist(err) {
 		return err
@@ -58,7 +59,7 @@ func (fs *FilesystemPipeItem) Write(context *Context, bytes io.ReadCloser) error
 }
 
 func (fs *FilesystemPipeItem) Read(context *Context) ([]byte, error) {
-	meta := context.Get(FILEMETADATA).(*FileMetadata)
+	meta := context.Get(FILEMETADATA).(*artifacts.FileMetadata)
 	file, err := os.Open(fs.url + "/" + meta.Path())
 
 	if err != nil {
@@ -70,7 +71,7 @@ func (fs *FilesystemPipeItem) Read(context *Context) ([]byte, error) {
 }
 
 func (fs *FilesystemPipeItem) Exists(context *Context) (bool, error) {
-	meta := context.Get(FILEMETADATA).(*FileMetadata)
+	meta := context.Get(FILEMETADATA).(*artifacts.FileMetadata)
 	file, err := os.Open(meta.Path())
 
 	if err != nil {

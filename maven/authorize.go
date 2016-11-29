@@ -6,6 +6,7 @@ import (
 	_ "github.com/lib/pq"
 	"log"
 	"errors"
+	"github.com/Meduzz/yamr/artifacts"
 )
 
 type (
@@ -20,6 +21,7 @@ type (
 	// TODO improvement when it comes to dual declare structs...
 	// Or simply package stuff better...
 	Package struct {
+		Id int64
 		Name string
 		Password string
 		Public bool
@@ -27,14 +29,15 @@ type (
 )
 
 const AUTHORIZATIONS = "authorizations"
+const PACKAGE = "package"
 
 func NewAuthorizeAdapter() *AuthorizePipeItem {
 	return &AuthorizePipeItem{}
 }
 
-// TODO check that credentail.username owns this package.
+// TODO check that credential.username owns this package.
 func (a *AuthorizePipeItem) Write(context *Context, bytes io.ReadCloser) error {
-	meta := context.Get(FILEMETADATA).(*FileMetadata)
+	meta := context.Get(FILEMETADATA).(*artifacts.FileMetadata)
 	credentials := credentialsOrNull(context)
 	packageDetails, err := authorizationForGroup(meta.GroupAsPackage())
 
@@ -44,6 +47,7 @@ func (a *AuthorizePipeItem) Write(context *Context, bytes io.ReadCloser) error {
 		return errors.New("Access denied.")
 	} else {
 		if packageDetails.Password == credentials.Password {
+			context.Set(PACKAGE, packageDetails)
 			return context.Write(bytes)
 		}
 		return errors.New("Invalid credentials.")
@@ -51,7 +55,7 @@ func (a *AuthorizePipeItem) Write(context *Context, bytes io.ReadCloser) error {
 }
 
 func (a *AuthorizePipeItem) Read(context *Context) ([]byte, error) {
-	meta := context.Get(FILEMETADATA).(*FileMetadata)
+	meta := context.Get(FILEMETADATA).(*artifacts.FileMetadata)
 	credentials := credentialsOrNull(context)
 	packageDetails, err := authorizationForGroup(meta.GroupAsPackage())
 
@@ -71,7 +75,7 @@ func (a *AuthorizePipeItem) Read(context *Context) ([]byte, error) {
 }
 
 func (a *AuthorizePipeItem) Exists(context *Context) (bool, error) {
-	meta := context.Get(FILEMETADATA).(*FileMetadata)
+	meta := context.Get(FILEMETADATA).(*artifacts.FileMetadata)
 	credentials := credentialsOrNull(context)
 	packageDetails, err := authorizationForGroup(meta.GroupAsPackage())
 
@@ -100,10 +104,10 @@ func authorizationForGroup(group string) (*Package, error) {
 
 	defer conn.Close()
 
-	row := conn.QueryRow("select groupName, public, password from packages where groupName = $1", group)
+	row := conn.QueryRow("select id, groupName, public, password from packages where groupName = $1", group)
 
 	p := &Package{}
-	err = row.Scan(&p.Name, &p.Public, &p.Password)
+	err = row.Scan(&p.Id, &p.Name, &p.Public, &p.Password)
 
 	if err != nil {
 		log.Printf("There was an error fetching data from db. (%s)", err)
@@ -122,10 +126,3 @@ func credentialsOrNull(c *Context) *Credential {
 		return nil
 	}
 }
-
-/*
-	Simplifications:
-	1. Disallow writes without credentials.
-	2. Only allow writes to packages specified in UI (with that package credential)
-	3. Unless package.read is true, disallow reads to that package without credentials, and only allow with that package credential.
- */

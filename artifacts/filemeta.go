@@ -1,4 +1,4 @@
-package maven
+package artifacts
 
 import (
 	"strings"

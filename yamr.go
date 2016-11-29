@@ -32,6 +32,7 @@ func main() {
 	webserver.GET("/api/domain/:domain", DomainExists)
 	webserver.GET("/api/packages", Packages)
 	webserver.POST("/api/packages", UpdatePackage)
+	webserver.GET("/api/search", Search)
 	// logout will simply be a reload of the single page.
 
 	webserver.StaticFile("/", "./static/index.html")
