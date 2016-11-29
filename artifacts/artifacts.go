@@ -9,11 +9,9 @@ type (
 	Artifacts struct { }
 
 	Artifact struct {
-		Id int64
 		Group string
 		Name string
 		Version string
-		File string
 	}
 )
 
@@ -45,7 +43,7 @@ func (a *Artifacts) Search(query string, userId int64, page, limit int) ([]*Arti
 		query = strings.Join([]string{"%", query, "%"}, "")
 	}
 
-	rows, err := conn.Query("select a.id, a.groupName, a.artifactName, a.version, a.filename from artifacts a left join packages p on (a.package_id = p.id) where (p.public = true or p.userId = $2) and (a.groupname like ($1) or a.artifactname like ($1)) limit $3 offset $4", query, userId, limit, page)
+	rows, err := conn.Query("select a.groupName, a.artifactName, a.version from artifacts a left join packages p on (a.package_id = p.id) where (p.public = true or p.userId = $2) and (a.groupname like ($1) or a.artifactname like ($1)) group by a.groupName, a.artifactName, a.version limit $3 offset $4", query, userId, limit, page)
 
 	if err != nil {
 		return nil, err
@@ -57,7 +55,7 @@ func (a *Artifacts) Search(query string, userId int64, page, limit int) ([]*Arti
 
 	for rows.Next() {
 		artifact := &Artifact{}
-		err = rows.Scan(&artifact.Id, &artifact.Group, &artifact.Name, &artifact.Version, &artifact.File)
+		err = rows.Scan(&artifact.Group, &artifact.Name, &artifact.Version)
 
 		if err != nil {
 			return nil, err
