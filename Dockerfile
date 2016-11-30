@@ -5,4 +5,5 @@ COPY yamr /srv/yamr/yamr
 COPY static/ /srv/yamr/static/
 VOLUME /srv/yamr/files
 WORKDIR "/srv/yamr"
+CMD ["/srv/yamr/yamr"]
 EXPOSE 4040
