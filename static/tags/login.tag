@@ -1,6 +1,8 @@
 <login>
   <ul class="nav navbar-nav navbar-right" if = {session != null}>
-    <li><a href="#/packages">Packages</a></li>
+    <li if={session.Admin}><a href="#/users">Users</a></li>
+    <li if={session.Admin}><a href="#/inactive">Inactive</a></li>
+    <li><a href="#/domains">Domains</a></li>
     <li><a href="/">Log out</a></li>
   </ul>
   <div class="navbar-form navbar-right" if = {session == null}>
@@ -41,6 +43,7 @@
           window.location.assign("#/")
         },
         failure:(xhr, status, err) => {
+          // TODO handle 404 as invalid login.
           alert("Login failed.")
           console.log(err)
           self.password = ''

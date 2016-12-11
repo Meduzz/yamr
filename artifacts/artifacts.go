@@ -43,7 +43,7 @@ func (a *Artifacts) Search(query string, userId int64, page, limit int) ([]*Arti
 		query = strings.Join([]string{"%", query, "%"}, "")
 	}
 
-	rows, err := conn.Query("select a.groupName, a.artifactName, a.version from artifacts a left join packages p on (a.package_id = p.id) where (p.public = true or p.userId = $2) and (a.groupname like ($1) or a.artifactname like ($1)) group by a.groupName, a.artifactName, a.version limit $3 offset $4", query, userId, limit, page)
+	rows, err := conn.Query("select a.groupName, a.artifactName, a.version from artifacts a left join packages p on (a.packageId = p.id) left join domains d on (d.Id = p.domainId) where (p.public = true or d.userId = $2) and (a.groupname like ($1) or a.artifactname like ($1)) group by a.groupName, a.artifactName, a.version limit $3 offset $4", query, userId, limit, page)
 
 	if err != nil {
 		return nil, err
@@ -76,8 +76,12 @@ func insert(group string, artifact string, version string, file string, packageI
 
 	defer conn.Close()
 
+	if err != nil {
+		return err
+	}
+
 	// insert into
-	_, err = conn.Exec("insert into artifacts (groupname, artifactname, version, filename, package_id) values ($1, $2, $3, $4, $5)", group, artifact, version, file, packageId)
+	_, err = conn.Exec("insert into artifacts (groupname, artifactname, version, filename, packageId) values ($1, $2, $3, $4, $5)", group, artifact, version, file, packageId)
 
 	if err != nil {
 		return err

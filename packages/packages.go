@@ -22,7 +22,7 @@ func NewPackages() *Packages {
 	return &Packages{}
 }
 
-func (p *Packages) UpdateOrCreate(userId int64, pac *Package) error {
+func (p *Packages) UpdateOrCreate(domainsId int64, pac *Package) error {
 	conn, err := sql.Open("postgres", "")
 
 	if err != nil {
@@ -34,7 +34,7 @@ func (p *Packages) UpdateOrCreate(userId int64, pac *Package) error {
 	if pac.Id > 0 {
 		_, err = conn.Exec("update packages set password = $1, public = $2 where id = $3", pac.Password, pac.Public, pac.Id)
 	} else {
-		_, err = conn.Exec("insert into packages (groupName, password, public, userId) values ($1, $2, $3, $4)", pac.Name, pac.Password, pac.Public, userId)
+		_, err = conn.Exec("insert into packages (groupName, password, public, domainId) values ($1, $2, $3, $4)", pac.Name, pac.Password, pac.Public, domainsId)
 	}
 
 	if err != nil {
@@ -44,7 +44,7 @@ func (p *Packages) UpdateOrCreate(userId int64, pac *Package) error {
 	return nil
 }
 
-func (p *Packages) List(userId int64, page, limit int) ([]*Package, error) {
+func (p *Packages) List(domainId int64, page, limit int) ([]*Package, error) {
 	conn, err := sql.Open("postgres", "")
 
 	if err != nil {
@@ -55,7 +55,7 @@ func (p *Packages) List(userId int64, page, limit int) ([]*Package, error) {
 
 	page = page * limit
 
-	rows, err := conn.Query("select id, groupname, password, public from packages where userId = $1 limit $2 offset $3", userId, limit, page)
+	rows, err := conn.Query("select id, groupname, password, public from packages where domainId = $1 limit $2 offset $3", domainId, limit, page)
 
 	if err != nil {
 		return nil, err

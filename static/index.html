@@ -1,62 +1,66 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>-[ Bosse ]-</title>
+    <title>Yet another maven repo</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
-    <script src="https://cdn.jsdelivr.net/riot/2.6/riot.min.js">
-    </script>
-    <script src="http://code.jquery.com/jquery-1.12.2.min.js">
-    </script>
-    <script src="/static/tags/login.js">
-    </script>
-    <script src="/static/tags/search.js">
-    </script>
-    <script src="/static/tags/register.js">
-    </script>
-    <script src="/static/tags/packages.js">
-    </script>
-    <script src="/static/tags/jsonform.js">
-    </script>
-    <script src="/static/js/mixins/entityMixin.js">
-    </script>
-    <script src="/static/js/mixins/restMixin.js">
-    </script>
+    <script src="https://cdn.jsdelivr.net/riot/2.6/riot.min.js"></script>
+    <script src="http://code.jquery.com/jquery-1.12.2.min.js"></script>
+    <script src="/static/tags/login.js"></script>
+    <script src="/static/tags/search.js"></script>
+    <script src="/static/tags/register.js"></script>
+    <script src="/static/tags/domains.js"></script>
+    <script src="/static/tags/jsonform.js"></script>
+    <script src="/static/tags/apply.js"></script>
+    <script src="/static/tags/inactives.js"></script>
+    <script src="/static/tags/packages.js"></script>
+    <script src="/static/tags/users.js"></script>
+    <script src="/static/js/mixins/entityMixin.js"></script>
+    <script src="/static/js/mixins/restMixin.js"></script>
   </head>
+  <body class="container-fluid">
+    <div class="col-md-8 col-md-offset-2 col-xs-12">
+      <nav class="navbar navbar-default">
+        <ul class="nav navbar-nav">
+          <li><a href="#/home">Home</a></li>
+        </ul>
+        <div id="login"></div>
+      </nav>
+      <div id="content" class="row"></div>
+    </div>
+    <script>
+      function Bus() {
+        riot.observable(this)
+      }
+
+      let bus = new Bus()
+      let routing = {
+        "home":"search",
+        "register":"register",
+        "domains":"domains",
+        "apply":"apply",
+        "inactive":"inactives",
+        "packages":"packages",
+        "users":"users"
+      }
+      let session = null
+      let admin = false
+
+
+      bus.on('session.started', (event) => {
+        session = event
+        if (event.admin) {
+          admin = true
+        }
+      })
+
+      riot.mount("#login", "login", {"bus":bus})
+
+      riot.route((controller, id, action) => {
+        route = controller || "home"
+        riot.mount("#content", routing[route], {"bus":bus, "session":session, "admin":admin, "pageId":id})
+      })
+
+      riot.route.start(true)
+    </script>
+  </body>
 </html>
-<body class="container-fluid">
-  <div class="col-md-8 col-md-offset-2 col-xs-12">
-    <nav class="navbar navbar-default">
-      <ul class="nav navbar-nav">
-        <li><a href="#/home">Home</a></li>
-      </ul>
-      <div id="login"></div>
-    </nav>
-    <div id="content"></div>
-  </div>
-  <script>
-    function Bus() {
-      riot.observable(this)
-    }
-
-    let bus = new Bus()
-    let routing = {
-      "home":"search",
-      "register":"register",
-      "packages":"packages"
-    }
-    var session = null
-
-    bus.on('session.started', (event) => {
-      session = event
-    })
-
-    riot.mount("#login", "login", {"bus":bus})
-
-    riot.route((controller, id, action) => {
-      route = controller || "home"
-      riot.mount("#content", routing[route], {"bus":bus, "session":session})
-    })
-
-    riot.route.start(true)
-  </script>
-</body>

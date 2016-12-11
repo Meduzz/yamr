@@ -1,7 +1,7 @@
 <packages>
   <div class="alert alert-warning" if={rows==null||rows.length==0}>No data available.</div>
   <div class="alert alert-danger" if={error!=null}>{error}</div>
-  <jsonform method="POST" action="/api/packages">
+  <jsonform method="POST" action="/api/packages?id={opts.pageId}">
     <h3>Your packages</h3>
     <table class="table table-striped">
       <thead>
@@ -9,7 +9,7 @@
           <th>Package</th>
           <th>Password</th>
           <th>Public</th>
-          <th></th<
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -71,10 +71,7 @@
           self.tags.jsonform.Name.value = ''
           self.tags.jsonform.Password.value = ''
 
-          rest.list(self.page, self.limit, (rows) => {
-            self.rows = rows
-            self.update()
-          })
+          listPackages()
         },
         failure:(xhr, status, err) => {
           self.error = err
@@ -115,7 +112,7 @@
     }
 
     function listPackages() {
-      rest.list(self.page, self.limit, (rows) => {
+      rest.list(self.page, self.limit, {"id":opts.pageId}, (rows) => {
         self.rows = rows
         self.update()
       })

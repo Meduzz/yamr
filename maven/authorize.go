@@ -7,6 +7,7 @@ import (
 	"log"
 	"errors"
 	"github.com/Meduzz/yamr/artifacts"
+	"strings"
 )
 
 type (
@@ -46,7 +47,7 @@ func (a *AuthorizePipeItem) Write(context *Context, bytes io.ReadCloser) error {
 	} else if credentials == nil {
 		return errors.New("Access denied.")
 	} else {
-		if packageDetails.Password == credentials.Password {
+		if startsWithOrEqual(credentials, packageDetails) {
 			context.Set(PACKAGE, packageDetails)
 			return context.Write(bytes)
 		}
@@ -66,7 +67,7 @@ func (a *AuthorizePipeItem) Read(context *Context) ([]byte, error) {
 			return context.Read()
 		} else if credentials == nil {
 			return nil, errors.New("Access denied.")
-		} else if packageDetails.Password == credentials.Password {
+		} else if startsWithOrEqual(credentials, packageDetails) {
 			return context.Read()
 		} else {
 			return nil, errors.New("Invalid credentials.")
@@ -86,7 +87,7 @@ func (a *AuthorizePipeItem) Exists(context *Context) (bool, error) {
 			return context.Exists()
 		} else if credentials == nil {
 			return false, errors.New("Access denied.")
-		} else if packageDetails.Password == credentials.Password {
+		} else if startsWithOrEqual(credentials, packageDetails) {
 			return context.Exists()
 		} else {
 			return false, errors.New("Invalid credentials.")
@@ -125,4 +126,22 @@ func credentialsOrNull(c *Context) *Credential {
 	} else {
 		return nil
 	}
+}
+
+func startsWithOrEqual(credentials *Credential, pkg *Package) bool {
+	if len(credentials.Username) == len(pkg.Name) {
+		if credentials.Username == pkg.Name && pkg.Password == credentials.Password {
+			return true
+		} else {
+			return false
+		}
+	} else if strings.HasPrefix(pkg.Name, credentials.Username) {
+		if pkg.Password == credentials.Password {
+			return true
+		} else {
+			return false
+		}
+	}
+
+	return false
 }

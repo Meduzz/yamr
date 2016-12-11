@@ -11,14 +11,13 @@ type (
 		Id int64
 		Username string
 		Password string
-		Package string
+		Admin bool
 	}
 
 	Users struct {
 	}
 )
 
-// TODO turn these NewX functions into factories...
 func NewUsers() *Users {
 	return &Users{}
 }
@@ -32,34 +31,13 @@ func (u *Users) Store(user *User) error {
 
 	defer conn.Close()
 
-	_, err = conn.Exec("insert into accounts (name, username, password) values ($1, $2, $3)", user.Package, user.Username, hash(user.Password))
+	_, err = conn.Exec("insert into accounts (username, password) values ($1, $2)", user.Username, hash(user.Password))
 
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func (u *Users) DomainExists(name string) (bool, error) {
-	conn, err := sql.Open("postgres", "")
-
-	if err != nil {
-		return true, err
-	}
-
-	defer conn.Close()
-
-	row := conn.QueryRow("select count(name) from accounts where name = $1", name)
-
-	var count int64
-	err = row.Scan(&count)
-
-	if err != nil {
-		return true, err
-	}
-
-	return count == 1, nil
 }
 
 func (u *Users) UserExists(name string) (bool, error) {
@@ -92,10 +70,10 @@ func (u *Users) LoadByUsernameAndPassword(username string, password string) (*Us
 
 	defer conn.Close()
 
-	row := conn.QueryRow("select id, username, password, name from accounts where username = $1 and password = $2", username, hash(password))
+	row := conn.QueryRow("select id, username, password, admin from accounts where username = $1 and password = $2", username, hash(password))
 
 	user := &User{}
-	err = row.Scan(&user.Id, &user.Username, &user.Password, &user.Package)
+	err = row.Scan(&user.Id, &user.Username, &user.Password, &user.Admin)
 
 	if err != nil {
 		return nil, err
@@ -113,16 +91,46 @@ func (u *Users) LoadById(id int64) (*User, error) {
 
 	defer conn.Close()
 
-	row := conn.QueryRow("select id, username, password, name from accounts where id = $1", id)
+	row := conn.QueryRow("select id, username, password, admin from accounts where id = $1", id)
 
 	user := &User{}
-	err = row.Scan(&user.Id, &user.Username, &user.Password, &user.Package)
+	err = row.Scan(&user.Id, &user.Username, &user.Password, &user.Admin)
 
 	if err != nil {
 		return nil, err
 	}
 
 	return user, nil
+}
+
+func (u *Users) ListUsers(skip, limit int) ([]*User, error) {
+	conn, err := sql.Open("postgres", "")
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer conn.Close()
+
+	rows, err := conn.Query("select * from accounts limit $2 offset $1", skip, limit)
+
+	if err != nil {
+		return nil, err
+	}
+
+	data := make([]*User, 0)
+	for rows.Next() {
+		row := &User{}
+		err = rows.Scan(&row.Id, &row.Username, &row.Password, &row.Admin)
+
+		if err != nil {
+			return nil, err
+		}
+
+		data = append(data, row)
+	}
+
+	return data, nil
 }
 
 func hash(value string) string {

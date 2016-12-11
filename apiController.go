@@ -11,6 +11,7 @@ import (
 	"github.com/Meduzz/yamr/artifacts"
 	"net/http"
 	"strconv"
+	"github.com/Meduzz/yamr/domains"
 )
 
 var (
@@ -18,6 +19,7 @@ var (
 	userManager = users.NewUsers()
 	packageManager = packages.NewPackages()
 	artifactManager = artifacts.NewArtifacts()
+	domainManager = domains.NewDomains()
 )
 
 // register a user (incl top domain (se.kodiak)).
@@ -51,14 +53,14 @@ func Login(g *gin.Context) {
 	u, err := userManager.LoadByUsernameAndPassword(credential.Username, credential.Password)
 
 	if err != nil {
-		g.AbortWithError(500, err)
+		g.AbortWithError(404, err)
 	} else {
 		session, err := sessionManager.CreateForUser(u.Id, ip)
 
 		if err != nil {
 			g.AbortWithError(500, err)
 		} else {
-			g.JSON(200, gin.H{"Id":session.Id})
+			g.JSON(200, gin.H{"Id":session.Id, "Admin":u.Admin})
 		}
 	}
 }
@@ -80,25 +82,35 @@ func UsernameExists(g *gin.Context) {
 	}
 }
 
-// are the top domain already registered?
-func DomainExists(g *gin.Context) {
-	domain := g.Param("domain")
+func ApplyForDomain(g *gin.Context) {
+	sessionId := g.Request.Header.Get("Session")
+	ip := cleanIp(g.Request)
+	domain := &domains.Domain{}
 
-	exists, err := userManager.DomainExists(domain)
+	session, err := sessionManager.LoadById(sessionId)
 
 	if err != nil {
 		g.AbortWithError(500, err)
+	} else if !valid(session, ip) {
+		g.AbortWithStatus(403)
 	} else {
-		if exists {
-			g.JSON(400, "")
+		sessionManager.Extend(session)
+		err = g.BindJSON(domain)
+		if err != nil {
+			g.AbortWithError(500, err)
 		} else {
-			g.JSON(200, "")
+			err := domainManager.Create(domain, session.UserId)
+
+			if err != nil {
+				g.AbortWithError(500, err)
+			} else {
+				g.JSON(201, "")
+			}
 		}
 	}
 }
 
-// list the users packages.
-func Packages(g *gin.Context) {
+func Domains(g *gin.Context) {
 	sessionId := g.Request.Header.Get("Session")
 	ip := cleanIp(g.Request)
 	sPage := g.Query("skip")
@@ -123,12 +135,56 @@ func Packages(g *gin.Context) {
 		g.AbortWithStatus(403)
 	} else {
 		sessionManager.Extend(session)
-		ps, err := packageManager.List(session.UserId, page, limit)
+		usersDomains, err := domainManager.ListDomainsForUser(session.UserId, page, limit)
 
 		if err != nil {
 			g.AbortWithError(500, err)
-		} else  {
-			g.JSON(200, ps)
+		} else {
+			g.JSON(200, usersDomains)
+		}
+	}
+}
+
+// list the users packages.
+func Packages(g *gin.Context) {
+	sessionId := g.Request.Header.Get("Session")
+	ip := cleanIp(g.Request)
+	sPage := g.Query("skip")
+	sLimit := g.Query("limit")
+	sDomainId := g.Query("id")
+
+	page := 0
+	limit := 20
+
+	if sPage != "" {
+		page, _ = strconv.Atoi(sPage)
+	}
+
+	if sLimit != "" {
+		limit, _ = strconv.Atoi(sLimit)
+	}
+
+	domainId, _ := strconv.Atoi(sDomainId)
+
+	session, err := sessionManager.LoadById(sessionId)
+
+	if err != nil {
+		g.AbortWithError(500, err)
+	} else if !valid(session, ip) {
+		g.AbortWithStatus(403)
+	} else {
+		if !domainManager.OwnedBy(int64(domainId), session.UserId) {
+			g.JSON(404, gin.H{})
+		} else {
+
+			sessionManager.Extend(session)
+			ps, err := packageManager.List(int64(domainId), page, limit)
+
+			if err != nil {
+				g.AbortWithError(500, err)
+			} else {
+				g.JSON(200, ps)
+			}
 		}
 	}
 }
@@ -137,6 +193,9 @@ func Packages(g *gin.Context) {
 func UpdatePackage(g *gin.Context) {
 	sessionId := g.Request.Header.Get("Session")
 	ip := cleanIp(g.Request)
+	sDomainId := g.Query("id")
+
+	domainId, _ := strconv.Atoi(sDomainId)
 
 	session, err := sessionManager.LoadById(sessionId)
 
@@ -146,18 +205,17 @@ func UpdatePackage(g *gin.Context) {
 		g.AbortWithStatus(403)
 	} else {
 		sessionManager.Extend(session)
+
 		p := &packages.Package{}
 		err = g.BindJSON(p)
 
 		if err != nil {
 			g.AbortWithError(400, err)
 		} else {
-			sessionUser, err := userManager.LoadById(session.UserId)
-
-			if err != nil {
-				g.AbortWithError(400, err)
+			if !domainManager.OwnedBy(int64(domainId), session.UserId) {
+				g.JSON(401, gin.H{})
 			} else {
-				err = packageManager.UpdateOrCreate(sessionUser.Id, p)
+				err = packageManager.UpdateOrCreate(int64(domainId), p)
 
 				if err != nil {
 					g.AbortWithError(400, err)
@@ -228,7 +286,6 @@ func Search(g *gin.Context) {
 			g.JSON(200, result)
 		}
 	}
-
 }
 
 func valid(session *sessions.Session, ip string) bool {

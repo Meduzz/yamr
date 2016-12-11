@@ -29,12 +29,19 @@ func main() {
 	webserver.POST("/api/register", Register)
 	webserver.POST("/api/login", Login)
 	webserver.GET("/api/username/:username", UsernameExists)
-	webserver.GET("/api/domain/:domain", DomainExists)
+	webserver.PUT("/api/domain/apply", ApplyForDomain)
+	webserver.GET("/api/domains", Domains)
+	webserver.GET("/api/search", Search)
 	webserver.GET("/api/packages", Packages)
 	webserver.POST("/api/packages", UpdatePackage)
-	webserver.GET("/api/search", Search)
 	// logout will simply be a reload of the single page.
 
+	// admin api urls
+	webserver.GET("/admin/domains", FindDomains)
+	webserver.GET("/admin/activate/:domain", ActivateDomain)
+	webserver.GET("/admin/users", ListUsers)
+
+	// static files
 	webserver.StaticFile("/", "./static/index.html")
 	webserver.Static("/static", "./static")
 

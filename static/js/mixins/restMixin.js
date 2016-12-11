@@ -15,17 +15,37 @@ function RestHelper(apiUrl, entityName, headers) {
   this.headers = headers || {}
 }
 
-RestHelper.prototype.list = function(skip, limit, callback) {
+RestHelper.prototype.list = function(skip, limit, query, callback) {
   if (callback == null && typeof(skip) === 'function') {
     callback = skip
-    skip = 0
-    limit = 10
+    query = {
+      skip:0,
+      limit:10
+    }
+  } else if (callback == null && typeof(skip) == 'object' && typeof(limit) === 'function') {
+    query = skip
+    callback = limit
+
+    query.skip = 0
+    query.limit = 10
+  } else if (typeof(query) === 'function') {
+    callback = query;
+    query = {
+      skip:skip,
+      limit:limit
+    }
+  }
+
+  qs = Object.keys(query).map((a) => a+"="+query[a]).join('&')
+
+  if (qs.length > 0) {
+    qs = "?"+qs
   }
 
   var setting = {
     contentType:'application/json',
     dataType:'json',
-    url: this.api+this.entity+'?skip='+skip+'&limit='+limit,
+    url: this.api+this.entity+qs,
     success: function(result) {
       callback(result)
     },
