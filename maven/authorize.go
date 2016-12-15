@@ -7,6 +7,7 @@ import (
 	"log"
 	"errors"
 	"github.com/Meduzz/yamr/artifacts"
+	"github.com/Meduzz/yamr/domains"
 	"strings"
 )
 
@@ -31,6 +32,8 @@ type (
 
 const AUTHORIZATIONS = "authorizations"
 const PACKAGE = "package"
+
+var domainManager = domains.NewDomains()
 
 func NewAuthorizeAdapter() *AuthorizePipeItem {
 	return &AuthorizePipeItem{}
@@ -129,19 +132,15 @@ func credentialsOrNull(c *Context) *Credential {
 }
 
 func startsWithOrEqual(credentials *Credential, pkg *Package) bool {
-	if len(credentials.Username) == len(pkg.Name) {
-		if credentials.Username == pkg.Name && pkg.Password == credentials.Password {
-			return true
-		} else {
-			return false
-		}
-	} else if strings.HasPrefix(pkg.Name, credentials.Username) {
-		if pkg.Password == credentials.Password {
-			return true
-		} else {
-			return false
-		}
-	}
+	if credentials.Username == pkg.Name && pkg.Password == credentials.Password {
+		d, err := domainManager.DomainByPackage(pkg.Id)
 
-	return false
+		if err != nil {
+			return false
+		} else {
+			return d.Active && strings.Contains(pkg.Name, d.Name)
+		}
+	} else {
+		return false
+	}
 }

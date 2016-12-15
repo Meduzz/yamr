@@ -166,3 +166,24 @@ func (d *Domains) OwnedBy(domainId, userId int64) bool {
 
 	return count == 1
 }
+
+func (d *Domains) DomainByPackage(id int64) (*Domain, error) {
+	conn, err := sql.Open("postgres", "")
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer conn.Close()
+
+	row := conn.QueryRow("select d.id, d.name, d.active from domains d left join packages p on (d.id = p.domainId) where p.id = $1", id)
+
+	domain := &Domain{}
+	err = row.Scan(&domain.Id, &domain.Name, &domain.Active)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return domain, nil
+}
