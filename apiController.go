@@ -1,29 +1,30 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
-	"time"
-	"strings"
-	"github.com/Meduzz/yamr/users"
-	"github.com/Meduzz/yamr/sessions"
-	"github.com/Meduzz/yamr/packages"
-	"github.com/Meduzz/yamr/maven"
-	"github.com/Meduzz/yamr/artifacts"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
+
+	"github.com/Meduzz/yamr/artifacts"
 	"github.com/Meduzz/yamr/domains"
+	"github.com/Meduzz/yamr/maven"
+	"github.com/Meduzz/yamr/packages"
+	"github.com/Meduzz/yamr/sessions"
+	"github.com/Meduzz/yamr/users"
+	"github.com/gin-gonic/gin"
 )
 
 var (
-	sessionManager = sessions.NewSessions()
-	userManager = users.NewUsers()
-	packageManager = packages.NewPackages()
+	sessionManager  = sessions.NewSessions()
+	userManager     = users.NewUsers()
 	artifactManager = artifacts.NewArtifacts()
-	domainManager = domains.NewDomains()
+	domainManager   = domains.NewDomains()
+	packageManager  = packages.NewPackages()
 )
 
 // register a user (incl top domain (se.kodiak)).
-func Register(g *gin.Context) {
+func register(g *gin.Context) {
 	u := &users.User{}
 	err := g.BindJSON(u)
 
@@ -41,7 +42,7 @@ func Register(g *gin.Context) {
 }
 
 // login a user.
-func Login(g *gin.Context) {
+func login(g *gin.Context) {
 	credential := &maven.Credential{}
 	err := g.BindJSON(credential)
 
@@ -60,13 +61,13 @@ func Login(g *gin.Context) {
 		if err != nil {
 			g.AbortWithError(500, err)
 		} else {
-			g.JSON(200, gin.H{"Id":session.Id, "Admin":u.Admin})
+			g.JSON(200, gin.H{"Id": session.Id, "Admin": u.Admin})
 		}
 	}
 }
 
 // does the username already exists?
-func UsernameExists(g *gin.Context) {
+func usernameExists(g *gin.Context) {
 	username := g.Param("username")
 
 	exists, err := userManager.UserExists(username)
@@ -82,7 +83,7 @@ func UsernameExists(g *gin.Context) {
 	}
 }
 
-func ApplyForDomain(g *gin.Context) {
+func applyForDomain(g *gin.Context) {
 	sessionId := g.Request.Header.Get("Session")
 	ip := cleanIp(g.Request)
 	domain := &domains.Domain{}
@@ -110,7 +111,7 @@ func ApplyForDomain(g *gin.Context) {
 	}
 }
 
-func Domains(g *gin.Context) {
+func loadDomains(g *gin.Context) {
 	sessionId := g.Request.Header.Get("Session")
 	ip := cleanIp(g.Request)
 	sPage := g.Query("skip")
@@ -146,7 +147,7 @@ func Domains(g *gin.Context) {
 }
 
 // list the users packages.
-func Packages(g *gin.Context) {
+func loadPackages(g *gin.Context) {
 	sessionId := g.Request.Header.Get("Session")
 	ip := cleanIp(g.Request)
 	sPage := g.Query("skip")
@@ -190,7 +191,7 @@ func Packages(g *gin.Context) {
 }
 
 // update/create a package.
-func UpdatePackage(g *gin.Context) {
+func updatePackage(g *gin.Context) {
 	sessionId := g.Request.Header.Get("Session")
 	ip := cleanIp(g.Request)
 	sDomainId := g.Query("id")
@@ -228,7 +229,7 @@ func UpdatePackage(g *gin.Context) {
 }
 
 // handle queries for packages.
-func Search(g *gin.Context) {
+func search(g *gin.Context) {
 	sessionId := g.Request.Header.Get("Session")
 	query := g.Query("q")
 	sPage := g.Query("page")
@@ -299,7 +300,7 @@ func cleanIp(req *http.Request) string {
 	if len(proxied) == 0 {
 		ip := strings.Replace(req.RemoteAddr, "[::1]", "127.0.0.1", -1)
 		return strings.Split(ip, ":")[0]
-	} else  {
+	} else {
 		return strings.Split(proxied, ":")[0]
 	}
 }

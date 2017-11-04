@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
-func FindDomains(g *gin.Context) {
+func findDomains(g *gin.Context) {
 	sessionId := g.Request.Header.Get("Session")
 	ip := cleanIp(g.Request)
 	sPage := g.Query("skip")
@@ -47,7 +48,7 @@ func FindDomains(g *gin.Context) {
 	}
 }
 
-func ActivateDomain(g *gin.Context) {
+func activateDomain(g *gin.Context) {
 	sessionId := g.Request.Header.Get("Session")
 	ip := cleanIp(g.Request)
 	sDomainId := g.Param("domain")
@@ -79,7 +80,7 @@ func ActivateDomain(g *gin.Context) {
 	}
 }
 
-func ListUsers(g *gin.Context) {
+func listUsers(g *gin.Context) {
 	sessionId := g.Request.Header.Get("Session")
 	ip := cleanIp(g.Request)
 	sPage := g.Query("skip")

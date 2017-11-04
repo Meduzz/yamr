@@ -1,0 +1,19 @@
+{
+    "name":"yamr-ui",
+    "version":"0.0.1",
+    "description": "an ui",
+    "repository": {
+    },
+    "readme": "asdf",
+    "license": "none",
+    "scripts":{
+        "gulp":"node_modules/gulp/bin/gulp.js"
+    },
+    "dependencies": {
+        "riot":"3.7.3",
+        "gulp":"3.9.1",
+        "gulp-riot":"1.1.1",
+        "gulp-browserify":"0.5.1",
+        "vinyl-source-stream":"1.1.0"
+    }
+}

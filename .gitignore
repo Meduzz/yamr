@@ -28,3 +28,5 @@ yamr.iml
 yamr
 files/*
 .notes
+node_modules/
+dev.sh
