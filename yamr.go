@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Meduzz/yamr/maven"
+	"./maven"
 	"github.com/gin-gonic/gin"
 )
 
