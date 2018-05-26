@@ -93,6 +93,7 @@ func fromEnv(param string, defaultVal string) string {
 	return env
 }
 
+// copied to middleware.go
 func extract(path string) *artifacts.FileMetadata {
 	split := strings.Split(path[1:], "/")
 
