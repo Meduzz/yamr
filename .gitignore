@@ -31,3 +31,4 @@ files/*
 node_modules/
 dev.sh
 gce.json
+docker-compose.yml
